@@ -1,61 +1,74 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-        <style>
-            body {
-                background-color: #191a19;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin: 0;
-                height: 100vh;
-                overflow: hidden;
-            }
-            canvas {
-                background-color: black;
-            }
-        </style>
-        <title>SnakeGame</title>
-    </head>
-    <body>
-        <canvas id="campo" height="600" width="600"></canvas>
-    </body>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <style>
+        body {
+            background-color: #191a19;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            background-color: black;
+            display: block;
+        }
+    </style>
+    <title>SnakeGame</title>
+</head>
+<body>
+    <canvas id="campo"></canvas>
     <script type="text/javascript">
         window.onload = function() {
             var scorx = 0;
-
-            // Ajustar tamanho do canvas para telas menores
             var campo = document.getElementById('campo');
             var ctx = campo.getContext("2d");
 
-            if (screen.width < 640 || screen.height < 480) {
-                campo.height = 350;
-                campo.width = 350;
-                scorx = 200;
-            } else {
-                scorx = 300;
+            function resizeCanvas() {
+                var larguraTela = window.innerWidth;
+                var alturaTela = window.innerHeight;
+
+                if (larguraTela < 640 || alturaTela < 480) {
+                    campo.width = 350;
+                    campo.height = 350;
+                    scorx = 200;
+                } else {
+                    campo.width = 600;
+                    campo.height = 600;
+                    scorx = 300;
+                }
+
+                // Recalcular a quantidade de tiles com base no novo tamanho do canvas
+                const tp = 30; // Tamanho do tile
+                const qp = Math.floor(campo.width / tp); // Quantidade de tiles
+                return { tp, qp };
             }
 
-            // Event listeners para controles de toque e teclado
+            const { tp, qp } = resizeCanvas();
+            window.addEventListener('resize', () => {
+                const { tp, qp } = resizeCanvas();
+                game(); // Atualizar o jogo com o novo tamanho do canvas
+            });
+
             document.addEventListener("touchstart", touchStart);
             document.addEventListener("keydown", keyPush);
 
             const vel = 1;
             const intervalo = 135; // Ajuste a velocidade aqui
-            const tp = 30; // Tamanho do tile
-            const qp = Math.floor(campo.width / tp); // Quantidade de tiles
             var vx = vy = 0; // Velocidade
             var px = 10; // Posição X do jogador
             var py = 15; // Posição Y do jogador
             var score = 0; // Pontuação
-            var ax = ay = 15; // Posição da maçã
+            var ax = Math.floor(Math.random() * (qp - 1)); // Posição da maçã inicial
+            var ay = Math.floor(Math.random() * (qp - 1));
 
             var trilha = []; // Rastro da cobra
             var peca = 5; // Comprimento inicial da cobra
 
-            // Ajuste o tamanho da maçã e o espaço entre os quadrados da cobra
             const espacoEntreQuadrados = 5; // Espaço entre os quadrados da cobra
             const tamanhoMaça = tp - 4; // Aumenta o tamanho da maçã
 
@@ -91,33 +104,33 @@
                 ctx.fillStyle = "black";
                 ctx.fillRect(0, 0, campo.width, campo.height);
 
-                // Desenhar maçã como um quadrado com cantos arredondados
+                // Desenhar maçã
                 ctx.fillStyle = "red";
-                roundRect(ax * tp - 5, ay * tp - 5, tamanhoMaça, tamanhoMaça, tp / 4); // Aumenta o tamanho da maçã
+                roundRect(ax * tp, ay * tp, tamanhoMaça, tamanhoMaça, tp / 4); // Desenhar a maçã
 
                 // Desenhar cobra
                 for (var i = 0; i < trilha.length; i++) {
                     let size = tp - espacoEntreQuadrados; // Tamanho dos quadrados da cobra
 
-                     if (i === trilha.length - 1) {
-            // Cabeça com olhos (mesmo tamanho)
-            ctx.fillStyle = "#004712";
-            roundRect(trilha[i].x * tp + espacoEntreQuadrados / 2, trilha[i].y * tp + espacoEntreQuadrados / 2, size, size, tp / 4);
+                    if (i === trilha.length - 1) {
+                        // Cabeça com olhos (mesmo tamanho)
+                        ctx.fillStyle = "#004712";
+                        roundRect(trilha[i].x * tp + espacoEntreQuadrados / 2, trilha[i].y * tp + espacoEntreQuadrados / 2, size, size, tp / 4);
 
-            // Desenhar olhos
-            ctx.fillStyle = "black";
-            var eyeOffsetX = (vx === 0 ? 0 : (vx > 0 ? 10 : -10));
-            var eyeOffsetY = (vy === 0 ? 0 : (vy > 0 ? 10 : -10));
-            ctx.beginPath();
-            // Olho esquerdo
-           
-            // Olho direito
-            ctx.arc(trilha[i].x * tp + tp / 4 + eyeOffsetX, trilha[i].y * tp + tp / 4 - eyeOffsetY, 3, 0, 2 * Math.PI);
-            ctx.fill();
-        } else {
-            ctx.fillStyle = "#004712";
-            roundRect(trilha[i].x * tp + espacoEntreQuadrados / 2, trilha[i].y * tp + espacoEntreQuadrados / 2, size, size, tp / 4);
-        }
+                        // Desenhar olhos
+                        ctx.fillStyle = "black";
+                        var eyeOffsetX = (vx === 0 ? 0 : (vx > 0 ? 10 : -10));
+                        var eyeOffsetY = (vy === 0 ? 0 : (vy > 0 ? 10 : -10));
+                        ctx.beginPath();
+                        // Olho esquerdo
+                        ctx.arc(trilha[i].x * tp + tp / 4 - eyeOffsetX, trilha[i].y * tp + tp / 4 - eyeOffsetY, 3, 0, 2 * Math.PI);
+                        // Olho direito
+                        ctx.arc(trilha[i].x * tp + tp / 4 + eyeOffsetX, trilha[i].y * tp + tp / 4 - eyeOffsetY, 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = "#004712";
+                        roundRect(trilha[i].x * tp + espacoEntreQuadrados / 2, trilha[i].y * tp + espacoEntreQuadrados / 2, size, size, tp / 4);
+                    }
 
                     // Verificar colisão com a própria cobra
                     if (trilha[i].x == px && trilha[i].y == py) {
@@ -175,20 +188,26 @@
                 var touchX = touch.pageX;
                 var touchY = touch.pageY;
 
-                if (touchX < campo.width / 2 && touchY < campo.height / 2) {
+                // Ajusta para o tamanho do canvas
+                var canvasRect = campo.getBoundingClientRect();
+                var scaledTouchX = touchX - canvasRect.left;
+                var scaledTouchY = touchY - canvasRect.top;
+
+                if (scaledTouchX < campo.width / 2 && scaledTouchY < campo.height / 2) {
                     vx = -vel; // Esquerda
                     vy = 0;
-                } else if (touchX < campo.width / 2 && touchY > campo.height / 2) {
+                } else if (scaledTouchX < campo.width / 2 && scaledTouchY > campo.height / 2) {
                     vx = 0; // Cima
                     vy = -vel;
-                } else if (touchX > campo.width / 2 && touchY < campo.height / 2) {
+                } else if (scaledTouchX > campo.width / 2 && scaledTouchY < campo.height / 2) {
                     vx = vel; // Direita
                     vy = 0;
-                } else if (touchX > campo.width / 2 && touchY > campo.height / 2) {
+                } else if (scaledTouchX > campo.width / 2 && scaledTouchY > campo.height / 2) {
                     vx = 0; // Baixo
                     vy = vel;
                 }
             }
         }
     </script>
+</body>
 </html>
